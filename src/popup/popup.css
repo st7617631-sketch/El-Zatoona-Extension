@@ -382,3 +382,127 @@ body {
     transition: none !important;
   }
 }
+
+/* ------------------ Phase 2: extraction preview (test) ------------------ */
+
+.extract {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(182, 242, 74, 0.25);
+  animation: fade-up 0.28s ease-out both;
+}
+
+.extract[hidden] {
+  display: none;
+}
+
+.extract-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.extract-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--neon);
+}
+
+.extract-meta {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  direction: ltr;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.extract-box {
+  width: 100%;
+  height: 190px;
+  resize: vertical;
+  padding: 9px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--line-strong);
+  background: #070c10;
+  color: #d8e6da;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 11px;
+  line-height: 1.65;
+  direction: rtl;
+  text-align: right;
+  white-space: pre-wrap;
+  overflow: auto;
+}
+
+.extract-box:focus {
+  outline: 1px solid rgba(182, 242, 74, 0.5);
+}
+
+.extract-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.mini {
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(182, 242, 74, 0.35);
+  background: rgba(182, 242, 74, 0.12);
+  color: var(--neon-soft);
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.mini--ghost {
+  border-color: var(--line-strong);
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.mini:hover {
+  filter: brightness(1.15);
+}
+
+.extract-status {
+  font-size: 11px;
+  text-align: center;
+  color: var(--text-muted);
+  padding: 2px 0;
+}
+
+.extract-status[hidden] {
+  display: none;
+}
+
+.extract-status.is-error {
+  color: #ffb1a3;
+}
+
+.cta[disabled] {
+  opacity: 0.65;
+  cursor: progress;
+}
+
+/* Arabic labels box (RTL) + extracted content box (LTR), shown together. */
+.extract-box--labels {
+  height: 96px;
+  color: var(--neon-soft);
+  border-color: rgba(182, 242, 74, 0.22);
+  direction: rtl;
+  text-align: right;
+}
+
+.extract-box[hidden] {
+  display: none;
+}

@@ -1,12 +1,12 @@
 /**
- * El Zatoona — Popup (Phase 1: Setup & UI)
+ * El Zatoona — Popup (Phase 2: Data Extraction)
  * ---------------------------------------------------------------
  * • Detects the current tab (activeTab) and renders one of 3 states.
  * • Shows the daily free-credits counter, stored ONLY in
  *   chrome.storage.sync (no server, no external API).
- *
- * Phase 1 is UI-only: the two CTA buttons are wired but intentionally
- * do nothing yet (Phase 2 adds the window.ai logic + credit spending).
+ * • On CTA click: injects `extractContent()` (src/content/extract.js) into the
+ *   active tab with chrome.scripting.executeScript and shows the raw result in
+ *   a textarea + console for testing. NO AI yet — that is Phase 3.
  */
 
 'use strict';
@@ -25,12 +25,13 @@ const STORAGE_KEYS = Object.freeze({
 });
 
 /**
- * Product pages: Amazon (all locales) + Noon (all locales).
- * Matches root/path domains like amazon.com, amazon.eg, amazon.co.uk, noon.com, noon.ae ...
+ * Product pages: Amazon + Noon + Jumia (all locales).
+ * Matches root/path domains like amazon.com, amazon.eg, amazon.co.uk, noon.com, noon.ae, jumia.com.eg ...
  */
 const PRODUCT_HOST_PATTERNS = Object.freeze([
   /(^|\.)amazon\.[a-z.]{2,}$/i,
   /(^|\.)noon\.[a-z.]{2,}$/i,
+  /(^|\.)jumia\.[a-z.]{2,}$/i,
 ]);
 
 /** Video platforms. */
@@ -78,6 +79,14 @@ const els = {
   creditsDot: document.getElementById('credits-dot'),
   creditsBar: document.getElementById('credits-bar'),
   creditsFill: document.getElementById('credits-fill'),
+  // Phase 2 (temporary test UI)
+  extractPanel: document.getElementById('extract-panel'),
+  extractOutput: document.getElementById('extract-output'),
+  extractArabic: document.getElementById('extract-arabic'),
+  extractMeta: document.getElementById('extract-meta'),
+  extractStatus: document.getElementById('extract-status'),
+  btnCopy: document.getElementById('btn-copy'),
+  btnCloseExtract: document.getElementById('btn-close-extract'),
 };
 
 /* ------------------------------------------------------------------ */
@@ -251,7 +260,7 @@ function loadCredits() {
  * toolbar icon was clicked on; any other tab returns no url, which the UI
  * renders as the neutral "not supported here yet" state.
  *
- * @returns {Promise<{url: string, title: string}|null>}
+ * @returns {Promise<{id: number, url: string, title: string}|null>}
  */
 function getActiveTab() {
   return new Promise((resolve) => {
@@ -262,27 +271,139 @@ function getActiveTab() {
         return;
       }
       const active = (Array.isArray(tabs) ? tabs : []).find((t) => typeof t.url === 'string' && t.url);
-      resolve(active ? { url: active.url ?? '', title: active.title ?? '' } : null);
+      resolve(active ? { id: active.id, url: active.url ?? '', title: active.title ?? '' } : null);
     });
   });
 }
 
 /* ------------------------------------------------------------------ */
-/* Buttons (CTA) — Phase 1: wired, logic comes in Phase 2              */
+/* Extraction — chrome.scripting.executeScript (Phase 2)               */
 /* ------------------------------------------------------------------ */
 
+/**
+ * The extractor lives in its own file. Loading it with a <script> tag gives
+ * us `extractContent` as a normal function, which `executeScript({func})`
+ * can serialise and run inside the page.
+ *
+ * @param {number} tabId
+ * @param {'product'|'article'} type
+ */
+async function extractFromTab(tabId, type) {
+  const [injection] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: extractContent, // eslint-disable-line no-undef
+    args: [type],
+  });
+  return injection ? injection.result : null;
+}
+
+/** Renders the extracted payload in the temporary test panel. */
+function showExtracted(result, type) {
+  const data = result && (result.data || {});
+  const stats = (result && result.stats) || {};
+  const isProduct = type === PAGE_TYPE.PRODUCT;
+
+  const label = isProduct ? 'منتج' : 'مقال';
+  const meta = [
+    (result && result.site) || '',
+    `${stats.chars ?? 0} حرف`,
+    isProduct ? `${stats.features ?? 0} وصف / ${stats.reviews ?? 0} تقييم` : `${stats.paragraphs ?? 0} فقرة`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  els.extractMeta.textContent = meta;
+
+  // The payload mixes Arabic labels with English site content. Putting it all
+  // in one RTL box scrambles mixed lines, so it is shown as two boxes: the
+  // extracted text (kept LTR) and the Arabic labels around it.
+  const rawText = (result && result.text) || 'مفيش داتا اتسحبت.';
+  const arabicLines = rawText.split('\n').filter((line) => /[\u0600-\u06FF]/.test(line));
+  const contentLines = rawText.split('\n').filter((line) => !/[\u0600-\u06FF]/.test(line));
+
+  els.extractArabic.value = arabicLines.join('\n').trim();
+  els.extractArabic.hidden = !els.extractArabic.value;
+  els.extractOutput.value = contentLines.join('\n').replace(/\n{3,}/g, '\n\n').trim() || 'مفيش داتا اتسحبت.';
+  els.extractOutput.dataset.fullText = rawText;
+  els.extractPanel.hidden = false;
+
+  setStatus(
+    result && result.error
+      ? `حصل خطأ في السحب: ${result.error}`
+      : `✓ اتسحبت داتا ${label}` + (data.source ? ` (${data.source})` : ''),
+    Boolean(result && result.error),
+  );
+
+  // Full structured payload for inspection (View → Developer → Inspect popup).
+  console.group('[El Zatoona] extracted');
+  console.log('type:', type);
+  console.log('data:', result);
+  console.log('text:', (result && result.text) || '');
+  console.groupEnd();
+}
+
+/** @param {string} message @param {boolean} isError */
+function setStatus(message, isError = false) {
+  els.extractStatus.textContent = message;
+  els.extractStatus.classList.toggle('is-error', isError);
+  els.extractStatus.hidden = !message;
+}
+
 /** @param {'product'|'article'} type */
-function handleCtaClick(type) {
-  // Phase 2 will call window.ai + spend a credit here.
-  console.info(`[El Zatoona] CTA "${type}" clicked (Phase 1: no AI yet).`);
+async function handleCtaClick(type) {
+  const button = type === PAGE_TYPE.PRODUCT ? els.btnProduct : els.btnArticle;
+  const originalLabel = button.textContent;
+
+  button.disabled = true;
+  button.textContent = 'بنسحب الداتا…';
+  setStatus('بنسحب محتوى الصفحة…');
+
+  try {
+    const tabId = activeTab && typeof activeTab.id === 'number' ? activeTab.id : -1;
+
+    if (tabId < 0) {
+      throw new Error('التاب مش متاح — اقفل وجرب تاني أو اعمل Refresh للصفحة.');
+    }
+
+    const result = await extractFromTab(tabId, type);
+    if (!result) throw new Error('السكربت رجع من غير نتيجة.');
+
+    showExtracted(result, type);
+  } catch (err) {
+    const message = String((err && err.message) || err);
+    console.error('[El Zatoona] extraction failed:', err);
+    els.extractPanel.hidden = true;
+    setStatus(`مقدرناش نسحب من الصفحة: ${message}`, true);
+  } finally {
+    button.disabled = false;
+    button.textContent = originalLabel;
+  }
 }
 
 els.btnProduct.addEventListener('click', () => handleCtaClick(PAGE_TYPE.PRODUCT));
 els.btnArticle.addEventListener('click', () => handleCtaClick(PAGE_TYPE.ARTICLE));
 
+els.btnCloseExtract.addEventListener('click', () => {
+  els.extractPanel.hidden = true;
+  setStatus('');
+});
+
+els.btnCopy.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(els.extractOutput.dataset.fullText || els.extractOutput.value);
+    setStatus('✓ اتنسخت');
+  } catch {
+    els.extractOutput.select();
+    setStatus('اختار وانسخ بـ Ctrl+C');
+  }
+});
+
 /* ------------------------------------------------------------------ */
 /* Init                                                                */
 /* ------------------------------------------------------------------ */
+
+/** @type {{id?: number, url: string, title: string}|null} */
+let activeTab = null;
 
 async function init() {
   showState('loading');
@@ -299,6 +420,7 @@ async function init() {
     return;
   }
 
+  activeTab = tab;
   renderPageType(detectPageType(tab.url), tab.url);
 }
 

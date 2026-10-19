@@ -54,6 +54,25 @@
       <button id="btn-article" class="cta cta--neon" type="button">🌿 لخصلّي الزتونة</button>
     </section>
 
+    <!-- Phase 2: temporary extraction preview (test only). The Arabic-labels
+         box and the extracted-content box are shown separately so mixed
+         RTL/LTR lines keep their natural order. -->
+    <section id="extract-panel" class="extract" hidden>
+      <div class="extract-head">
+        <span class="extract-title">الداتا المسحوبة</span>
+        <span id="extract-meta" class="extract-meta"></span>
+      </div>
+      <textarea id="extract-arabic" class="extract-box extract-box--labels" readonly dir="rtl" spellcheck="false" hidden></textarea>
+      <textarea id="extract-output" class="extract-box" readonly dir="ltr" spellcheck="false"></textarea>
+      <div class="extract-actions">
+        <button id="btn-copy" class="mini" type="button">نسخ</button>
+        <button id="btn-close-extract" class="mini mini--ghost" type="button">إغلاق</button>
+      </div>
+    </section>
+
+    <!-- Extraction progress / errors -->
+    <p id="extract-status" class="extract-status" hidden></p>
+
     <!-- State: unsupported page -->
     <section id="state-unsupported" class="state state--unsupported" hidden>
       <div class="state-icon state-icon--unsupported" aria-hidden="true">
@@ -74,12 +93,13 @@
         <span id="credits-text" class="credits-text">متبقي <b id="credits-left">5</b>/<span id="credits-total">5</span> محاولات اليوم</span>
         <span id="credits-dot" class="credits-dot" aria-hidden="true"></span>
       </div>
-      <div class="credits-bar" role="progressbar" aria-valuemin="0" aria-valuemax="5" aria-valuenow="5" id="credits-bar">
+      <div class="credits-bar" id="credits-bar" role="progressbar" aria-valuemin="0" aria-valuemax="5" aria-valuenow="5">
         <span id="credits-fill" class="credits-fill"></span>
       </div>
     </footer>
   </main>
 
+  <script src="../content/extract.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

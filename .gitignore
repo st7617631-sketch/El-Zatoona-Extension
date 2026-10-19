@@ -1,13 +1,5 @@
-# Dependencies (QA tooling only — the extension itself has none)
 node_modules/
+.qa/
+*.tmp
+_preview*.png
 
-# QA artifacts
-.qa/profile*/
-.qa/shots/
-.qa/probe-ext/
-
-# OS / editor noise
-Thumbs.db
-.DS_Store
-.vscode/
-.idea/
