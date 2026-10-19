@@ -15,12 +15,14 @@
         <h1 class="brand-name">الزتونة</h1>
         <p class="brand-tagline">EL ZATOONA</p>
       </div>
-      <span class="brand-badge" title="يعمل بالذكاء الاصطناعي المدمج في المتصفح">AI</span>
+      <span id="pro-badge" class="badge badge--pro" hidden>PRO</span>
+      <span class="badge" title="مدعوم بالذكاء الاصطناعي">AI</span>
     </header>
 
-    <!-- State: checking page -->
+    <div class="body">
+    <!-- State: checking page (pulse, no spinner) -->
     <section id="state-loading" class="state state--loading" hidden>
-      <div class="spinner" aria-hidden="true"></div>
+      <div class="pulse pulse--sm" aria-hidden="true"></div>
       <p class="state-text">بنتأكد من الصفحة اللي انت فيها…</p>
     </section>
 
@@ -35,8 +37,8 @@
       </div>
       <p class="state-eyebrow">صفحة منتج</p>
       <h2 class="state-title">عايز تعرف المنتج يستاهل؟</h2>
-      <p class="state-sub">افحص التقييمات والأسعار وطلّع الزتونة في ثواني.</p>
-      <button id="btn-product" class="cta cta--neon" type="button">🌿 إديني زتونة المنتج</button>
+      <p class="state-sub">افحص التقييمات والأسعار في ثواني، وهتلاقي رأينا المباشر.</p>
+      <button id="btn-product" class="cta" type="button">🌿 إديني زتونة المنتج</button>
     </section>
 
     <!-- State: article / video -->
@@ -50,18 +52,18 @@
       </div>
       <p class="state-eyebrow">مقال / فيديو</p>
       <h2 class="state-title">مش فاضي تقرأ أو تتفرج؟</h2>
-      <p class="state-sub">سيبها على الزتونة تلخصلك أهم النقاط.</p>
-      <button id="btn-article" class="cta cta--neon" type="button">🌿 لخصلّي الزتونة</button>
+      <p class="state-sub">سيبها على الزتونة تلخصلك أهم النقاط في 3 سطور.</p>
+      <button id="btn-article" class="cta" type="button">🌿 لخصلّي الزتونة</button>
     </section>
 
-    <!-- State: thinking (extraction + Gemini Nano are working) -->
+    <!-- State: thinking (extraction + API are working) -->
     <section id="state-thinking" class="state state--thinking" hidden>
-      <div class="spinner spinner--lg" aria-hidden="true"></div>
+      <div class="pulse" aria-hidden="true"><span></span><span></span><span></span></div>
       <p class="state-title thinking-title">الزتونة بتعصر الأفكار…</p>
       <p id="thinking-sub" class="state-sub">سيبها ثانية وهتلاقي الخلاصة جاهزة.</p>
     </section>
 
-    <!-- State: AI result -->
+    <!-- State: result (fade-in) -->
     <section id="state-result" class="state state--result" hidden>
       <div class="result-head">
         <span id="result-eyebrow" class="state-eyebrow">الزتونة</span>
@@ -75,9 +77,9 @@
       </div>
     </section>
 
-    <!-- State: errors (extraction failed, AI failed, model still downloading…) -->
+    <!-- State: errors (extraction failed, API unreachable / busy…) -->
     <section id="state-error" class="state state--error" hidden>
-      <div class="state-icon state-icon--unsupported" aria-hidden="true">
+      <div class="state-icon state-icon--error" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="9" />
           <path d="M12 8v5" />
@@ -86,41 +88,33 @@
       </div>
       <h2 class="state-title">معلش، حصلت مشكلة</h2>
       <p id="error-text" class="state-sub">حاول تاني.</p>
-      <button id="btn-retry" class="cta cta--neon" type="button">جرّب تاني</button>
+      <button id="btn-retry" class="cta" type="button">جرّب تاني</button>
     </section>
 
-    <!-- State: built-in AI not enabled in this browser -->
-    <section id="state-ai-off" class="state state--ai" hidden>
-      <div class="state-icon state-icon--ai" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="5" y="5" width="14" height="14" rx="3" />
-          <path d="M9 9h.01M15 9h.01M9 13h6" />
-          <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-        </svg>
-      </div>
-      <h2 class="state-title">عشان تستخدم الزتونة، لازم تفعل الذكاء الاصطناعي في متصفحك</h2>
-      <p class="state-sub">
-        الزتونة بتشتغل بالذكاء الاصطناعي المدمج في كروم (Gemini Nano) — من غير سيرفرات ولا مفاتيح API.
-        فعّله من إعدادات كروم وارجع جرب تاني.
-      </p>
-      <button id="btn-open-flags" class="ai-link" type="button" title="chrome://flags/#prompt-api-for-gemini-nano">
-        افتح إعدادات كروم فوراً
-      </button>
-      <code class="ai-url" dir="ltr">chrome://flags/#prompt-api-for-gemini-nano</code>
-      <p class="ai-note">لو اللينك مش فاتح من هنا، انسخ العنوان ده واغلقه وحدده في شريط عناوين كروم.</p>
-      <ol class="ai-steps">
-        <li>حوّل إعداد <b class="ltr">Prompt API for Gemini Nano</b> لـ <b>Enabled</b>.</li>
-        <li>من <b class="ltr">chrome://components</b> اتأكد إن <b class="ltr">Optimization Guide On Device Model</b> متحمّل (أو اعمل Update).</li>
-        <li>اعمل Restart لكروم، وقفل النافذة دي وافتحها تاني.</li>
-      </ol>
-      <p id="ai-status" class="ai-status" hidden></p>
-      <p id="ai-copy-hint" class="ai-hint" hidden></p>
-      <button id="btn-ai-recheck" class="mini mini--ghost" type="button">✓ فعّلته — جرّب تاني</button>
+    <!-- State: paywall (free credits are over) -->
+    <section id="state-paywall" class="state state--paywall" hidden>
+      <span class="paywall-crown" aria-hidden="true">🌿</span>
+      <h2 class="state-title">خلصت محاولاتك المجانية!</h2>
+      <p class="state-sub">اشترك في النسخة الـ Pro للتلخيص بدون حدود.</p>
+
+      <button id="btn-subscribe" class="cta cta--pro" type="button">اشترك الآن</button>
+
+      <button id="btn-show-license" class="link-btn" type="button">معاك كود تفعيل؟</button>
+
+      <form id="license-form" class="license" hidden novalidate>
+        <label class="license-label" for="license-input">فعّل نسختك الـ Pro</label>
+        <div class="license-row">
+          <input id="license-input" class="license-input" type="text" dir="ltr" autocomplete="off"
+            spellcheck="false" placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" aria-label="كود التفعيل" />
+          <button id="btn-activate" class="mini mini--solid" type="submit">تفعيل</button>
+        </div>
+        <p id="license-status" class="license-status" role="status" hidden></p>
+      </form>
     </section>
 
     <!-- State: unsupported page -->
     <section id="state-unsupported" class="state state--unsupported" hidden>
-      <div class="state-icon state-icon--unsupported" aria-hidden="true">
+      <div class="state-icon state-icon--muted" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="9" />
           <path d="M12 8v5" />
@@ -131,11 +125,16 @@
       <p class="state-sub">افتح صفحة منتج على أمازون أو نون أو جوميا، أو مقال/فيديو وجرب تاني.</p>
       <p id="unsupported-url" class="state-url" hidden></p>
     </section>
+    </div>
 
     <!-- Footer: daily free credits -->
     <footer class="footer">
       <div class="credits">
-        <span id="credits-text" class="credits-text">متبقي <b id="credits-left">5</b>/<span id="credits-total">5</span> محاولات اليوم</span>
+        <span class="credits-text">
+          <span id="credits-free">متبقي <b id="credits-left">5</b>/<span id="credits-total">5</span> محاولات اليوم</span>
+          <span id="credits-pro" hidden>✨ نسخة Pro — بدون حدود</span>
+        </span>
+        <button id="btn-manage-pro" class="link-btn link-btn--sm" type="button" hidden>إدارة الاشتراك</button>
         <span id="credits-dot" class="credits-dot" aria-hidden="true"></span>
       </div>
       <div class="credits-bar" id="credits-bar" role="progressbar" aria-valuemin="0" aria-valuemax="5" aria-valuenow="5">
@@ -146,6 +145,7 @@
 
   <script src="../content/extract.js"></script>
   <script src="../ai/ai.js"></script>
+  <script src="../ai/pro.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

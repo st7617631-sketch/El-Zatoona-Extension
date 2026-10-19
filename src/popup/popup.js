@@ -1,18 +1,18 @@
 /**
- * El Zatoona — Popup (Phase 3: AI Integration)
+ * El Zatoona — Popup (Phase 4: cloud AI + credits + Pro)
  * ---------------------------------------------------------------
- * • Detects the current tab (activeTab) and renders one of 3 states.
- * • Shows the daily free-credits counter, stored ONLY in
- *   chrome.storage.sync (no server, no external API).
+ * • Detects the current tab (activeTab) and renders the matching state.
+ * • Free plan: 5 attempts per calendar day, stored in chrome.storage.sync.
+ *   Pro plan : `isPro: true` in chrome.storage.sync → no credit is spent.
  * • On CTA click:
- *     1. checks the built-in AI (window.ai / Gemini Nano) — if it is not
- *        enabled, shows the "enable AI in your browser" screen with the
- *        chrome://flags link and stops there;
+ *     1. Free user with 0 attempts → paywall, no extraction and no API call;
  *     2. injects `extractContent()` (src/content/extract.js) into the tab;
- *     3. sends the extracted text + the Arabic prompt to the model
- *        (src/ai/ai.js) and renders the answer in the popup.
+ *     3. sends the extracted text to our Vercel endpoint (src/ai/ai.js);
+ *     4. only AFTER a successful answer, one attempt is deducted.
+ * • Paywall → Gumroad checkout + licence-key activation (src/ai/pro.js).
  *
- * NOTE (Phase 3): credits are NOT spent yet — that is wired in Phase 4.
+ * NOTE: `vercel-backend/` holds the serverless API and the Gemini keys.
+ * Nothing secret lives inside the extension.
  */
 
 'use strict';
@@ -27,11 +27,21 @@ const DAILY_FREE_CREDITS = 5;
 const PRODUCT_CTA_LABEL = '🌿 إديني زتونة المنتج';
 const ARTICLE_CTA_LABEL = '🌿 لخصلّي الزتونة';
 
+/**
+ * Gumroad — where "اشترك الآن" goes. The product id / permalink used by the
+ * licence check live in manifest.json → `gumroad` (src/ai/pro.js reads them).
+ * Keep the two in sync if the product changes.
+ */
+const GUMROAD_CHECKOUT_URL = 'https://elzatoona.gumroad.com/l/el-zatoona';
+
 /** Storage keys (chrome.storage.sync) */
 const STORAGE_KEYS = Object.freeze({
   CREDITS_LEFT: 'creditsLeft',
   CREDITS_DATE: 'creditsDate',
   CREDITS_TOTAL: 'creditsTotal',
+  IS_PRO: 'isPro',
+  LICENSE_KEY: 'licenseKey',
+  PRO_SALE: 'proSale',
 });
 
 /**
@@ -74,42 +84,58 @@ const PAGE_TYPE = Object.freeze({
 /* DOM                                                                 */
 /* ------------------------------------------------------------------ */
 
+const byId = (id) => document.getElementById(id);
+
 const els = {
   states: {
-    loading: document.getElementById('state-loading'),
-    product: document.getElementById('state-product'),
-    article: document.getElementById('state-article'),
-    unsupported: document.getElementById('state-unsupported'),
-    thinking: document.getElementById('state-thinking'),
-    result: document.getElementById('state-result'),
-    error: document.getElementById('state-error'),
-    'ai-off': document.getElementById('state-ai-off'),
+    loading: byId('state-loading'),
+    product: byId('state-product'),
+    article: byId('state-article'),
+    unsupported: byId('state-unsupported'),
+    thinking: byId('state-thinking'),
+    result: byId('state-result'),
+    error: byId('state-error'),
+    paywall: byId('state-paywall'),
   },
-  unsupportedUrl: document.getElementById('unsupported-url'),
-  btnProduct: document.getElementById('btn-product'),
-  btnArticle: document.getElementById('btn-article'),
-  creditsLeft: document.getElementById('credits-left'),
-  creditsTotal: document.getElementById('credits-total'),
-  creditsDot: document.getElementById('credits-dot'),
-  creditsBar: document.getElementById('credits-bar'),
-  creditsFill: document.getElementById('credits-fill'),
-  // Phase 3 (AI)
-  thinkingSub: document.getElementById('thinking-sub'),
-  resultEyebrow: document.getElementById('result-eyebrow'),
-  resultBox: document.getElementById('result-box'),
-  resultText: document.getElementById('result-text'),
-  btnCopy: document.getElementById('btn-copy'),
-  btnAgain: document.getElementById('btn-again'),
-  errorText: document.getElementById('error-text'),
-  btnRetry: document.getElementById('btn-retry'),
-  aiStatus: document.getElementById('ai-status'),
-  btnOpenFlags: document.getElementById('btn-open-flags'),
-  btnAiRecheck: document.getElementById('btn-ai-recheck'),
-  aiCopyHint: document.getElementById('ai-copy-hint'),
+  unsupportedUrl: byId('unsupported-url'),
+  btnProduct: byId('btn-product'),
+  btnArticle: byId('btn-article'),
+  proBadge: byId('pro-badge'),
+  creditsFree: byId('credits-free'),
+  creditsPro: byId('credits-pro'),
+  creditsLeft: byId('credits-left'),
+  creditsTotal: byId('credits-total'),
+  creditsDot: byId('credits-dot'),
+  creditsBar: byId('credits-bar'),
+  creditsFill: byId('credits-fill'),
+  btnManagePro: byId('btn-manage-pro'),
+  thinkingSub: byId('thinking-sub'),
+  resultEyebrow: byId('result-eyebrow'),
+  resultBox: byId('result-box'),
+  resultText: byId('result-text'),
+  btnCopy: byId('btn-copy'),
+  btnAgain: byId('btn-again'),
+  errorText: byId('error-text'),
+  btnRetry: byId('btn-retry'),
+  btnSubscribe: byId('btn-subscribe'),
+  btnShowLicense: byId('btn-show-license'),
+  licenseForm: byId('license-form'),
+  licenseInput: byId('license-input'),
+  licenseStatus: byId('license-status'),
+  btnActivate: byId('btn-activate'),
 };
 
-/** Where the user enables the built-in model. */
-const AI_FLAGS_URL = 'chrome://flags/#prompt-api-for-gemini-nano';
+/** Shared UI state. */
+const state = {
+  isPro: false,
+  credits: { left: DAILY_FREE_CREDITS, total: DAILY_FREE_CREDITS },
+};
+
+/** @type {{id?: number, url: string, title: string}|null} */
+let activeTab = null;
+
+/** Last run, kept so "جرّب تاني" can repeat it. @type {{type: 'product'|'article', tabId: number}|null} */
+let currentJob = null;
 
 /* ------------------------------------------------------------------ */
 /* Page-type detection                                                 */
@@ -148,7 +174,7 @@ function detectPageType(url) {
 /* Rendering                                                           */
 /* ------------------------------------------------------------------ */
 
-/** @param {'loading'|'product'|'article'|'unsupported'|'thinking'|'result'|'error'|'ai-off'} name */
+/** @param {'loading'|'product'|'article'|'unsupported'|'thinking'|'result'|'error'|'paywall'} name */
 function showState(name) {
   for (const [key, node] of Object.entries(els.states)) {
     node.hidden = key !== name;
@@ -191,7 +217,7 @@ function renderPageType(pageType, url) {
 function shortenUrl(url) {
   try {
     const { hostname, pathname } = new URL(url);
-    const path = pathname.length > 28 ? `${pathname.slice(0, 28)}…` : pathname;
+    const path = pathname.length > 48 ? `${pathname.slice(0, 48)}…` : pathname;
     return hostname + path;
   } catch {
     return url;
@@ -199,13 +225,23 @@ function shortenUrl(url) {
 }
 
 /**
- * @param {number} left
- * @param {number} total
+ * Footer + header for the current plan.
+ * Free → "متبقي x/5" + progress bar. Pro → "بدون حدود", no bar.
+ *
+ * @param {{left: number, total: number}} credits
+ * @param {boolean} isPro
  */
-function renderCredits(left, total) {
-  const safeTotal = total > 0 ? total : DAILY_FREE_CREDITS;
-  const safeLeft = Math.min(Math.max(0, left), safeTotal);
+function renderCredits(credits, isPro) {
+  const safeTotal = credits.total > 0 ? credits.total : DAILY_FREE_CREDITS;
+  const safeLeft = Math.min(Math.max(0, credits.left), safeTotal);
   const isEmpty = safeLeft === 0;
+
+  els.proBadge.hidden = !isPro;
+  els.btnManagePro.hidden = !isPro;
+  els.creditsFree.hidden = isPro;
+  els.creditsPro.hidden = !isPro;
+  els.creditsBar.hidden = isPro;
+  els.creditsDot.hidden = isPro;
 
   els.creditsLeft.textContent = String(safeLeft);
   els.creditsTotal.textContent = String(safeTotal);
@@ -215,11 +251,10 @@ function renderCredits(left, total) {
   els.creditsFill.style.width = `${(safeLeft / safeTotal) * 100}%`;
   els.creditsFill.classList.toggle('is-empty', isEmpty);
   els.creditsDot.classList.toggle('is-empty', isEmpty);
-  els.creditsDot.hidden = !isEmpty;
 }
 
 /* ------------------------------------------------------------------ */
-/* Credits (chrome.storage.sync)                                       */
+/* Storage (chrome.storage.sync)                                       */
 /* ------------------------------------------------------------------ */
 
 /** Local calendar day, e.g. "2026-10-19". */
@@ -274,6 +309,53 @@ function loadCredits() {
   });
 }
 
+/**
+ * Persists one used attempt and mirrors it in the UI.
+ * @returns {Promise<{left: number, total: number}>}
+ */
+async function spendCredit() {
+  const { left, total } = await loadCredits();
+  const next = Math.max(0, left - 1);
+
+  await new Promise((resolve) => {
+    chrome.storage.sync.set(
+      {
+        [STORAGE_KEYS.CREDITS_LEFT]: next,
+        [STORAGE_KEYS.CREDITS_DATE]: todayKey(),
+        [STORAGE_KEYS.CREDITS_TOTAL]: total,
+      },
+      () => resolve(),
+    );
+  });
+
+  state.credits = { left: next, total };
+  renderCredits(state.credits, state.isPro);
+  return state.credits;
+}
+
+/** @returns {Promise<{isPro: boolean}>} */
+function loadLicense() {
+  return new Promise((resolve) => {
+    chrome.storage.sync.get([STORAGE_KEYS.IS_PRO], (data) => {
+      resolve({ isPro: !chrome.runtime.lastError && data[STORAGE_KEYS.IS_PRO] === true });
+    });
+  });
+}
+
+/** @param {boolean} isPro @param {{licenseKey?: string, sale?: object}} [extra] */
+function saveLicense(isPro, extra = {}) {
+  return new Promise((resolve) => {
+    chrome.storage.sync.set(
+      {
+        [STORAGE_KEYS.IS_PRO]: isPro,
+        [STORAGE_KEYS.LICENSE_KEY]: extra.licenseKey || '',
+        [STORAGE_KEYS.PRO_SALE]: extra.sale || null,
+      },
+      () => resolve(),
+    );
+  });
+}
+
 /* ------------------------------------------------------------------ */
 /* Active tab                                                          */
 /* ------------------------------------------------------------------ */
@@ -307,8 +389,21 @@ function getActiveTab() {
   });
 }
 
+/** Opens a URL in a new tab (falls back to window.open in the QA harness). */
+async function openTab(url) {
+  try {
+    if (chrome.tabs && typeof chrome.tabs.create === 'function') {
+      await chrome.tabs.create({ url });
+      return;
+    }
+  } catch {
+    /* fall through */
+  }
+  window.open(url, '_blank', 'noopener');
+}
+
 /* ------------------------------------------------------------------ */
-/* Extraction — chrome.scripting.executeScript (Phase 2)               */
+/* Extraction — chrome.scripting.executeScript                         */
 /* ------------------------------------------------------------------ */
 
 /**
@@ -328,33 +423,26 @@ async function extractFromTab(tabId, type) {
   return injection ? injection.result : null;
 }
 
+/* ------------------------------------------------------------------ */
+/* The main flow                                                       */
+/* ------------------------------------------------------------------ */
+
 /**
- * Click handler. Returns early (and pays no AI cost) when the built-in model
- * is not enabled, so a user without Gemini Nano never sees a spinner or a
- * timeout — just the "how to enable it" screen.
+ * Click handler.
+ * - Free user with 0 attempts → paywall, no extraction, no API call.
+ * - Otherwise → spinner, then runJob().
  *
  * @param {'product'|'article'} type
  */
 async function handleCtaClick(type) {
-  const button = type === PAGE_TYPE.PRODUCT ? els.btnProduct : els.btnArticle;
-
-  button.disabled = true;
-  button.textContent = 'بنجهّز الذكاء الاصطناعي…';
-
-  try {
-    const ai = await ZatoonaAI.check(); // eslint-disable-line no-undef
-    if (!ai.supported) {
-      currentJob = null;
-      showAiOff(ai.status);
+  if (!state.isPro) {
+    const credits = await loadCredits();
+    state.credits = credits;
+    renderCredits(credits, false);
+    if (credits.left <= 0) {
+      showPaywall();
       return;
     }
-  } catch (err) {
-    console.error('[El Zatoona] AI check failed:', err);
-    showErr('مقدرناش نتأكد من الذكاء الاصطناعي في المتصفح. جرّب تاني.');
-    return;
-  } finally {
-    button.disabled = false;
-    button.textContent = type === PAGE_TYPE.PRODUCT ? PRODUCT_CTA_LABEL : ARTICLE_CTA_LABEL;
   }
 
   if (!activeTab || typeof activeTab.id !== 'number') {
@@ -374,8 +462,11 @@ async function handleCtaClick(type) {
 async function runJob(job) {
   const { type, tabId } = job;
 
+  showState('thinking');
+  els.thinkingSub.textContent = 'بنسحب محتوى الصفحة…';
+
   try {
-    // 1) Page → text (Phase 2 extractor, unchanged).
+    // 1) Page → text (Phase 2 extractor).
     const result = await extractFromTab(tabId, type);
     if (!result) throw new Error('السكربت رجع من غير نتيجة.');
     if (result.error) throw new Error(`حصل خطأ في السحب: ${result.error}`);
@@ -385,42 +476,39 @@ async function runJob(job) {
       throw new Error('لقينا محتوى قليل جداً في الصفحة — افتح الصفحة كاملة وجرّب تاني.');
     }
 
-    // 2) Text + prompt → Gemini Nano.
-    els.thinkingSub.textContent = 'بنسأل الذكاء الاصطناعي…';
-
     // Full payload stays in the console for debugging (no UI clutter).
     console.groupCollapsed('[El Zatoona] extracted');
-    console.log('type:', type, 'chars:', pageText.length);
+    console.log('type:', type, 'chars:', pageText.length, 'pro:', state.isPro);
     console.log(result);
     console.groupEnd();
 
-    const answer = await ZatoonaAI.generate(ZatoonaAI.buildPrompt(type, pageText), { // eslint-disable-line no-undef
-      onDownload: (loaded, total) => {
-        const pct = total ? ` (${Math.round((loaded / total) * 100)}%)` : '';
-        els.thinkingSub.textContent = `بنحمّل موديل الذكاء الاصطناعي أول مرة، ممكن ياخد شوية…${pct}`;
-      },
+    // 2) Text → Vercel API → Gemini.
+    els.thinkingSub.textContent = 'بنسأل الزتونة…';
+    const answer = await ZatoonaAI.summarize({ // eslint-disable-line no-undef
+      type,
+      text: ZatoonaAI.buildPrompt(type, pageText), // eslint-disable-line no-undef
+      title: result.title,
     });
 
-    if (!answer) throw new Error('الذكاء الاصطناعي رجع رد فاضي — جرّب تاني.');
+    // 3) Only a successful answer costs an attempt (Pro users: never).
+    if (!state.isPro) await spendCredit();
 
     showResult(type, answer);
   } catch (err) {
-    console.error('[El Zatoona] AI flow failed:', err);
-    const message = String((err && err.message) || err);
+    console.error('[El Zatoona] flow failed:', err);
+    const status = err && err.status;
+    const AI = ZatoonaAI.STATUS; // eslint-disable-line no-undef
 
-    // Chrome throws these when the prompt API is enabled but the model is not
-    // usable yet (not downloaded, GPU-less machine, unsupported locale…).
-    if (
-      (err && err.code === 'AI_UNSUPPORTED') ||
-      /AI_UNSUPPORTED|NotSupportedError|not available|not supported/i.test(message)
-    ) {
-      showAiOff('unavailable');
-    } else if (/failed to fetch|network|connection|offline/i.test(message)) {
-      showAiOff('downloadable');
-    } else if (/context|too (large|long)|input.+exceed/i.test(message)) {
-      showErr('المحتوى أطول من اللي الموديل بيستوعبه. جرّب على صفحة أقصر.');
+    if (status === AI.OUT_OF_QUOTA) {
+      showErr('خدمة التلخيص عليها ضغط دلوقتي. جرّب تاني بعد دقيقة.');
+    } else if (status === AI.OFFLINE) {
+      showErr('مش قادرين نوصل للسيرفر — اتأكد من الإنترنت وجرّب تاني.');
+    } else if (status === AI.TIMEOUT) {
+      showErr('الطلب خد وقت أطول من اللازم. جرّب تاني.');
+    } else if (/محتوى قليل|السكربت|حصل خطأ في السحب/.test(String(err && err.message))) {
+      showErr(String(err.message));
     } else {
-      showErr('مقدرناش نكمل الطلب. تأكد إن الذكاء الاصطناعي مفعّل وجرّب تاني.');
+      showErr('مقدرناش نكمل الطلب. جرّب تاني بعد شوية.');
     }
   }
 }
@@ -445,22 +533,78 @@ function showErr(message) {
   showState('error');
 }
 
-/**
- * The "enable AI in your browser" screen.
- * @param {string} [status] value from ZatoonaAI.check()
- */
-function showAiOff(status) {
-  const notes = {
-    downloadable: 'موديل Gemini Nano متاح على جهازك لكنه لسه مش متحمّل — كروم هينزّله أول مرة لوحده، اقفل النافذة وجرب تاني بعد شوية.',
-    unavailable: 'كروم مش لاقي الموديل خالص. اتأكد من الخطوات اللي تحت، ولو لسه مش شغال جرّب تحدّث كروم.',
-    downloading: 'موديل Gemini Nano بيتحمّل دلوقتي. استنى شوية وقفل النافذة وافتحها تاني.',
-  };
+/** The "free attempts are over" screen. */
+function showPaywall() {
+  els.licenseForm.hidden = true;
+  els.licenseStatus.hidden = true;
+  els.licenseInput.value = '';
+  showState('paywall');
+}
 
-  const note = notes[status] || '';
-  els.aiStatus.textContent = note;
-  els.aiStatus.hidden = !note;
-  els.aiCopyHint.hidden = true;
-  showState('ai-off');
+/* ------------------------------------------------------------------ */
+/* Paywall: Gumroad checkout + licence activation                      */
+/* ------------------------------------------------------------------ */
+
+const LICENSE_MESSAGES = {
+  valid: 'تم التفعيل! نسختك الـ Pro شغالة دلوقتي — استمتع بالتلخيص بدون حدود. ✨',
+  invalid: 'الكود مش صح أو مش تابع للزتونة. اتأكد منه وجرب تاني.',
+  refunded: 'الاشتراك ده ملغي أو اتعمله استرجاع، فمش متاح تفعيله.',
+  not_configured: 'التحقق من الأكواد مش متفعّل لسه — كلم الدعم.',
+  network: 'مش قادرين نتحقق من الكود دلوقتي. اتأكد من الإنترنت وجرب تاني.',
+};
+
+/**
+ * @param {string} message
+ * @param {'ok'|'error'|'info'} kind
+ */
+function showLicenseStatus(message, kind) {
+  els.licenseStatus.textContent = message;
+  els.licenseStatus.classList.toggle('is-ok', kind === 'ok');
+  els.licenseStatus.classList.toggle('is-error', kind === 'error');
+  els.licenseStatus.hidden = false;
+}
+
+/** @param {SubmitEvent} event */
+async function activateLicense(event) {
+  event.preventDefault();
+
+  const key = els.licenseInput.value.trim();
+  if (!key) {
+    showLicenseStatus('اكتب كود التفعيل الأول.', 'error');
+    els.licenseInput.focus();
+    return;
+  }
+
+  els.btnActivate.disabled = true;
+  els.btnActivate.textContent = 'بنفعّل…';
+  showLicenseStatus('بنتحقق من الكود مع Gumroad…', 'info');
+
+  const PRO = ZatoonaPro; // eslint-disable-line no-undef
+
+  try {
+    const result = await PRO.verify(key);
+
+    if (result.status === PRO.STATUS.VALID) {
+      await saveLicense(true, { licenseKey: key, sale: result.sale });
+      state.isPro = true;
+      renderCredits(state.credits, true);
+      showLicenseStatus(LICENSE_MESSAGES.valid, 'ok');
+      // Let the success message be read, then hand the page CTA back.
+      setTimeout(() => {
+        if (currentJob) runJob(currentJob);
+        else if (activeTab && activeTab.url) renderPageType(detectPageType(activeTab.url), activeTab.url);
+      }, 900);
+      return;
+    }
+
+    showLicenseStatus(LICENSE_MESSAGES[result.status] || LICENSE_MESSAGES.invalid, 'error');
+  } catch (err) {
+    console.error('[El Zatoona] licence check failed:', err);
+    showLicenseStatus(LICENSE_MESSAGES.network, 'error');
+  } finally {
+    els.btnActivate.disabled = false;
+    els.btnActivate.textContent = 'تفعيل';
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -480,30 +624,20 @@ els.btnAgain.addEventListener('click', () => {
   else if (activeTab && activeTab.url) renderPageType(detectPageType(activeTab.url), activeTab.url);
 });
 
-/**
- * The extension itself can open chrome:// pages (a normal link cannot).
- * In the QA harness there is no chrome.tabs.create, hence the copy fallback.
- */
-els.btnOpenFlags.addEventListener('click', async () => {
-  try {
-    await chrome.tabs.create({ url: AI_FLAGS_URL });
-    window.close(); // popups close themselves once the tab opens
-  } catch {
-    try {
-      await navigator.clipboard.writeText(AI_FLAGS_URL);
-    } catch {
-      /* the text is on screen anyway, the user can type/select it */
-    }
-    els.aiCopyHint.textContent = 'اتنسخ اللينك — الصقه في شريط العناوين في تاب جديد. ⬅';
-    els.aiCopyHint.hidden = false;
-  }
+els.btnSubscribe.addEventListener('click', () => {
+  openTab(GUMROAD_CHECKOUT_URL);
 });
 
-/** Re-runs the check after the user enabled the model (no chrome restart needed to retry). */
-els.btnAiRecheck.addEventListener('click', () => {
-  if (currentJob) runJob(currentJob);
-  else if (activeTab && activeTab.url) renderPageType(detectPageType(activeTab.url), activeTab.url);
+els.btnManagePro.addEventListener('click', () => {
+  openTab(GUMROAD_CHECKOUT_URL);
 });
+
+els.btnShowLicense.addEventListener('click', () => {
+  els.licenseForm.hidden = !els.licenseForm.hidden;
+  if (!els.licenseForm.hidden) els.licenseInput.focus();
+});
+
+els.licenseForm.addEventListener('submit', activateLicense);
 
 els.btnCopy.addEventListener('click', async () => {
   const label = els.btnCopy.textContent;
@@ -528,18 +662,28 @@ els.btnCopy.addEventListener('click', async () => {
 /* Init                                                                */
 /* ------------------------------------------------------------------ */
 
-/** @type {{id?: number, url: string, title: string}|null} */
-let activeTab = null;
-
-/** Last click, kept so "جرّب تاني" can repeat it. @type {{type: 'product'|'article', tabId: number}|null} */
-let currentJob = null;
-
 async function init() {
   showState('loading');
 
-  const [tab, credits] = await Promise.all([getActiveTab(), loadCredits()]);
+  const [tab, credits, license] = await Promise.all([getActiveTab(), loadCredits(), loadLicense()]);
 
-  renderCredits(credits.left, credits.total);
+  // QA hooks (no effect in production): preset the plan / balance or open a
+  // specific screen (`?state=paywall`) to check the UI without a real account.
+  if (globalThis.ZATOONA_QA) {
+    const qa = globalThis.ZATOONA_QA;
+    if (typeof qa.creditsLeft === 'number') credits.left = qa.creditsLeft;
+    if (typeof qa.isPro === 'boolean') license.isPro = qa.isPro;
+    if (qa.loading) {
+      showState('loading');
+      return;
+    }
+    if (qa.state === 'paywall') showPaywall();
+    if (qa.state === 'thinking') showState('thinking');
+  }
+
+  state.credits = credits;
+  state.isPro = license.isPro;
+  renderCredits(credits, state.isPro);
 
   // No URL → the page is not accessible (chrome://, Web Store, or activeTab
   // access not granted). We cannot say what it is, so keep the neutral

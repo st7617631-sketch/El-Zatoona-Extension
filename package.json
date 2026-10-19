@@ -2,10 +2,10 @@
   "name": "el-zatoona",
   "version": "1.0.0",
   "private": true,
-  "description": "El Zatoona - Chrome extension (MV3). Phase 1: Setup & UI.",
+  "description": "El Zatoona - Chrome extension (MV3). Phase 4: cloud AI (Vercel) + credits + Pro.",
   "license": "UNLICENSED",
   "scripts": {
-    "test": "node .qa/test-detect.mjs && node .qa/ai-flow.mjs product",
+    "test": "node .qa/test-detect.mjs && node vercel-backend/test/summarize.test.js && node .qa/ai-flow.mjs product && node .qa/ai-flow.mjs zero && node .qa/ai-flow.mjs pro",
     "qa:ui": "node .qa/qa-popup.mjs product .qa/shots/product.png",
     "qa:e2e": "node .qa/e2e-popup.mjs"
   },

@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "الزتونة - El Zatoona",
   "short_name": "El Zatoona",
-  "version": "1.1.0",
-  "description": "الزتونة: لخّص المقالات وافحص المنتجات بالذكاء الاصطناعي المدمج في كروم (Gemini Nano) — بدون سيرفرات ولا مفاتيح API.",
+  "version": "1.2.0",
+  "description": "الزتونة: لخّص المقالات وافحص المنتجات بالذكاء الاصطناعي في 3 سطور — نسخة Pro بدون حدود.",
   "icons": {
     "16": "assets/icons/icon16.png",
     "32": "assets/icons/icon32.png",
@@ -24,5 +24,14 @@
     "activeTab",
     "storage",
     "scripting"
-  ]
+  ],
+  "host_permissions": [
+    "https://*.vercel.app/*",
+    "https://api.gumroad.com/*"
+  ],
+  "gumroad": {
+    "productId": "",
+    "productPermalink": "el-zatoona",
+    "checkoutUrl": "https://elzatoona.gumroad.com/l/el-zatoona"
+  }
 }
