@@ -2,9 +2,14 @@
 import { readFileSync } from 'node:fs';
 
 const lines = readFileSync('src/popup/popup.js', 'utf8').split(/\r?\n/);
-const cfg = lines.slice(14, 62).join('\n');        // config consts
-const detect = lines.slice(83, 116).join('\n');    // detectPageType
-const code = cfg + '\n' + detect;
+const lineOf = (needle) => lines.findIndex((l) => l.includes(needle));
+const block = (fromNeedle, toNeedle) => lines.slice(lineOf(fromNeedle), lineOf(toNeedle)).join('\n');
+
+const code = [
+  block('const PRODUCT_HOST_PATTERNS', 'const PAGE_TYPE'),
+  lines.slice(lineOf('const PAGE_TYPE'), lineOf('const els =')).join('\n'),
+  lines.slice(lineOf('function detectPageType'), lineOf('function showState')).join('\n'),
+].join('\n');
 
 const detectPageType = new Function(`${code}; return detectPageType;`)();
 
@@ -16,6 +21,8 @@ const cases = [
   ['https://smile.amazon.com/dp/x', 'product'],
   ['https://www.noon.com/egypt-ar/headphone/123/p/', 'product'],
   ['https://noon.ae/english/xyz/p/', 'product'],
+  ['https://www.jumia.com.eg/some-product-123.html', 'product'],
+  ['https://jumia.co.ke/some-product.html', 'product'],
   ['https://ar.wikipedia.org/wiki/زيتون', 'article'],
   ['https://www.youtube.com/watch?v=abc123', 'article'],
   ['https://youtu.be/abc123', 'article'],

@@ -119,8 +119,20 @@ function extractContent(type) {
 
   const clean = (s) => (s || '').replace(/\s+/g, ' ').trim();
 
-  const q = (sel, root = document) => root.querySelector(sel);
-  const qa = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const q = (sel, root = document) => {
+    try {
+      return root.querySelector(sel);
+    } catch {
+      return null; // a browser that rejects the selector must not kill extraction
+    }
+  };
+  const qa = (sel, root = document) => {
+    try {
+      return Array.from(root.querySelectorAll(sel));
+    } catch {
+      return [];
+    }
+  };
 
   const txt = (el) => (el ? clean(el.innerText || el.textContent) : '');
 
@@ -255,6 +267,7 @@ function extractContent(type) {
       '.markdown-body',
       '#mw-content-text', // Wikipedia / MediaWiki
       '.mw-parser-output', // Wikipedia / MediaWiki
+      '#mw-content-text .mw-parser-output > p', // article prose, not tables/navboxes
       'body',
     ];
 
@@ -317,15 +330,19 @@ function extractContent(type) {
       if (t.length < 2) continue;
       const key = t.slice(0, 100);
       if (seen.has(key)) continue;
-      seen.add(key);
 
       const tag = el.tagName.toLowerCase();
-      if (tag.startsWith('h')) {
-        if (t.length <= 200) headings.push(t);
-      } else if (t.length >= 15) {
-        // Short "li"/"p" are usually menus/labels — keep only real sentences.
-        paragraphs.push(t);
+      const heading = tag.startsWith('h') && t.length <= 200;
+
+      // Keep the title once, however many times the page repeats it
+      // (Wikipedia: <title>, the <h1>, and the infobox caption).
+      if (t === pageTitle) {
+        continue;
       }
+      seen.add(key);
+
+      if (heading) headings.push(t);
+      else if (t.length >= 15) paragraphs.push(t); // short li/p are menus/labels
     }
 
     const author =
@@ -338,12 +355,14 @@ function extractContent(type) {
       meta('datePublished') ||
       (q('time[datetime]') ? q('time[datetime]').getAttribute('datetime') : '');
 
-    // Don't repeat the H1 when it is already the page title.
+    // Reading order: its own H1 first, then the body paragraphs, then section
+    // headings. Headings-last keeps the prose readable when a long article is
+    // cut at MAX_TEXT_CHARS (a Wikipedia headings box can alone be 4k chars).
     const h1Block = headings.filter((h) => h !== pageTitle);
     const parts = [];
     if (pageTitle) parts.push(pageTitle);
-    if (h1Block.length) parts.push(h1Block.join('\n'));
     parts.push(paragraphs.join('\n\n'));
+    if (h1Block.length) parts.push(`\n## الأقسام\n${h1Block.join('\n')}`);
     const text = parts.filter(Boolean).join('\n\n').slice(0, MAX_TEXT_CHARS);
 
     return {
