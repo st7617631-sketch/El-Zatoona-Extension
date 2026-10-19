@@ -21,6 +21,10 @@
  * the next key automatically. If every key is exhausted the function answers
  * 429 with `error: "all_keys_exhausted"`.
  *
+ * `GET /api/summarize?diagnose=1` → never calls Gemini, only reports what the
+ * function sees: number of keys, key prefixes, model, deployment env. Use it to
+ * check a Vercel deployment in seconds (`keyCount === 0` ⇒ env var missing).
+ *
  * No dependencies — plain Web `fetch`, so there is nothing to `npm install`.
  */
 
@@ -191,9 +195,10 @@ async function callGemini({ key, model, prompt, maxOutputTokens }) {
     }
 
     if (!response.ok) {
-      const message =
+      const geminiMessage =
         (data && data.error && data.error.message) || `Gemini HTTP ${response.status}`;
-      const error = new Error(message);
+      console.error(`[summarize] Gemini ${response.status}:`, geminiMessage);
+      const error = new Error(geminiMessage);
       error.status = response.status;
       error.retryable = ROTATE_ON.has(response.status);
       throw error;
@@ -224,6 +229,27 @@ async function callGemini({ key, model, prompt, maxOutputTokens }) {
 
 module.exports = async function handler(req, res) {
   const origin = req.headers.origin;
+
+  // Diagnostic: what does this deployment actually see? No Gemini call.
+  if (req.method === 'GET' && (req.query && req.query.diagnose)) {
+    const keys = readApiKeys();
+    send(
+      res,
+      200,
+      {
+        ok: true,
+        diagnose: true,
+        keyCount: keys.length,
+        keyPrefixes: keys.map((k) => `${k.slice(0, 6)}…(${k.length})`),
+        model: process.env.GEMINI_MODEL || DEFAULT_MODEL,
+        modelEnvSet: Boolean(process.env.GEMINI_MODEL),
+        vercelEnv: process.env.VERCEL_ENV || null,
+        commit: (process.env.VERCEL_GIT_COMMIT_SHA || '').slice(0, 7) || null,
+      },
+      origin,
+    );
+    return;
+  }
 
   if (req.method === 'OPTIONS') {
     res.statusCode = 204;
@@ -288,6 +314,7 @@ module.exports = async function handler(req, res) {
 
   // Every key was rotated through without a usable answer.
   const exhausted = failures.every((f) => f.status === 429);
+  console.error('[summarize] all keys failed:', JSON.stringify(failures));
   send(
     res,
     429,
@@ -296,6 +323,9 @@ module.exports = async function handler(req, res) {
       error: exhausted ? 'all_keys_exhausted' : 'gemini_unavailable',
       message: 'All Gemini keys failed. Try again in a minute.',
       attempts: failures.length,
+      // The real Gemini status/message, so the extension console is enough to
+      // diagnose a bad key or a retired model (never the key itself).
+      failures,
     },
     origin,
   );
