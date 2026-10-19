@@ -24,7 +24,7 @@ var ZatoonaAI = (function () {
    * Production endpoint (Vercel) — the project's stable production alias.
    * QA override: `globalThis.ZATOONA_API_URL = 'http://localhost:3000/api/summarize'`
    */
-  const DEFAULT_API_URL = 'https://el-zatoona.vercel.app/api/summarize';
+  const DEFAULT_API_URL = 'https://el-zatoona-extension-vercel-backend.vercel.app/api/summarize';
 
   const TIMEOUT_MS = 45000;
 
