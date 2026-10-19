@@ -28,10 +28,5 @@
   "host_permissions": [
     "https://*.vercel.app/*",
     "https://api.gumroad.com/*"
-  ],
-  "gumroad": {
-    "productId": "",
-    "productPermalink": "el-zatoona",
-    "checkoutUrl": "https://elzatoona.gumroad.com/l/el-zatoona"
-  }
+  ]
 }

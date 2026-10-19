@@ -13,7 +13,7 @@
  *   GEMINI_API_KEYS   several keys, comma / newline separated
  *                     "AIza…key1,AIza…key2,AIza…key3"
  *   GEMINI_API_KEY    single-key fallback (optional)
- *   GEMINI_MODEL      optional, default "gemini-2.5-flash-lite"
+ *   GEMINI_MODEL      optional, default "gemini-3.5-flash-lite"
  *   ALLOWED_ORIGIN    optional, comma-separated CORS allow-list ("*" by default)
  *
  * Key rotation: the first key is tried; on 429 / quota errors (and also on
@@ -31,7 +31,7 @@
 /* ------------------------------------------------------------------ */
 
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
-const DEFAULT_MODEL = 'gemini-2.5-flash-lite';
+const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
 
 const MAX_TEXT_CHARS = 20000; // hard cap on what a browser may send
 const MAX_PRODUCT_CHARS = 12000;

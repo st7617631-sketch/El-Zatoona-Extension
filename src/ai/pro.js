@@ -10,8 +10,8 @@
  * On success we only store `isPro: true` + the key in chrome.storage.sync —
  * no server of ours is involved, everything stays on the user's machine.
  *
- * Configuration lives in manifest.json → `gumroad`:
- *   { "productId": "…", "productPermalink": "…", "checkoutUrl": "…" }
+ * Configuration lives HERE (constants below) — manifest.json must stay clean,
+ * Chrome warns about unknown keys.
  * Either productId or productPermalink is enough for the verify call;
  * checkoutUrl is the buy link opened by the "اشترك الآن" button.
  *
@@ -25,9 +25,12 @@
 var ZatoonaPro = (function () {
   const VERIFY_URL = 'https://api.gumroad.com/v2/licenses/verify';
 
-  /** Fallbacks, used when manifest.json has no `gumroad` block (or throws). */
-  const FALLBACK = Object.freeze({
-    productId: '',
+  /**
+   * Gumroad configuration — CHANGE THESE if the product changes.
+   * (Previously in manifest.json; removed because Chrome warns on unknown keys.)
+   */
+  const CONFIG = Object.freeze({
+    productId: '',            // Gumroad product id (optional if permalink is set)
     productPermalink: 'el-zatoona',
     checkoutUrl: 'https://elzatoona.gumroad.com/l/el-zatoona',
   });
@@ -40,21 +43,9 @@ var ZatoonaPro = (function () {
     NETWORK: 'network',
   });
 
-  /** Reads the `gumroad` block from the extension manifest. */
+  /** Returns the Gumroad configuration constants. */
   function config() {
-    let fromManifest = {};
-    try {
-      if (typeof chrome !== 'undefined' && chrome.runtime && typeof chrome.runtime.getManifest === 'function') {
-        fromManifest = chrome.runtime.getManifest().gumroad || {};
-      }
-    } catch {
-      fromManifest = {};
-    }
-    return {
-      productId: String(fromManifest.productId || FALLBACK.productId).trim(),
-      productPermalink: String(fromManifest.productPermalink || FALLBACK.productPermalink).trim(),
-      checkoutUrl: String(fromManifest.checkoutUrl || FALLBACK.checkoutUrl).trim(),
-    };
+    return { ...CONFIG };
   }
 
   /** Sale returned by Gumroad (`use` = number of devices the key was used on). */

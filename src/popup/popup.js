@@ -29,8 +29,7 @@ const ARTICLE_CTA_LABEL = '🌿 لخصلّي الزتونة';
 
 /**
  * Gumroad — where "اشترك الآن" goes. The product id / permalink used by the
- * licence check live in manifest.json → `gumroad` (src/ai/pro.js reads them).
- * Keep the two in sync if the product changes.
+ * licence check live as constants in src/ai/pro.js (CONFIG). Keep in sync.
  */
 const GUMROAD_CHECKOUT_URL = 'https://elzatoona.gumroad.com/l/el-zatoona';
 

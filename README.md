@@ -46,14 +46,14 @@ Popup (600×400) ──extractContent()──▶ الصفحة (أمازون / ن
 
 ### ربط Gumroad
 
-في `manifest.json` → `gumroad`:
+الـ Constants موجودة في `src/ai/pro.js` → `CONFIG`:
 
-```json
-"gumroad": {
-  "productId": "<Gumroad product id>",
-  "productPermalink": "el-zatoona",
-  "checkoutUrl": "https://elzatoona.gumroad.com/l/el-zatoona"
-}
+```js
+const CONFIG = Object.freeze({
+  productId: '',            // Gumroad product id (اختياري لو الـ permalink مضبوط)
+  productPermalink: 'el-zatoona',
+  checkoutUrl: 'https://elzatoona.gumroad.com/l/el-zatoona',
+});
 ```
 
 - `checkoutUrl` = لينك زرار **اشترك الآن**.

@@ -7,7 +7,7 @@
 ```
 POST /api/summarize
 body:   { "type": "article" | "product", "text": "…", "title": "…" }
-200:    { "ok": true, "answer": "…", "model": "gemini-2.5-flash-lite", "keyIndex": 0 }
+200:    { "ok": true, "answer": "…", "model": "gemini-3.5-flash-lite", "keyIndex": 0 }
 429:    { "ok": false, "error": "all_keys_exhausted" }   ← كل المفاتيح خلصت
 5xx:    { "ok": false, "error": "gemini_failed", "message": "…" }
 ```
@@ -18,7 +18,7 @@ body:   { "type": "article" | "product", "text": "…", "title": "…" }
 |---|---|---|
 | `GEMINI_API_KEYS` | ✅ | كل مفاتيح Gemini مفصولة بفاصلة (أو سطر جديد، أو JSON array) |
 | `GEMINI_API_KEY` | ❌ | مفتاح واحد بديل لو حابب |
-| `GEMINI_MODEL` | ❌ | افتراضي `gemini-2.5-flash-lite` (ممكن `gemini-2.5-flash`) |
+| `GEMINI_MODEL` | ❌ | افتراضي `gemini-3.5-flash-lite` (ممكن `gemini-3.5-flash-lite`) |
 | `ALLOWED_ORIGIN` | ❌ | قائمة CORS مسموحة، افتراضي `*` |
 
 شكل `GEMINI_API_KEYS`:
