@@ -54,24 +54,69 @@
       <button id="btn-article" class="cta cta--neon" type="button">🌿 لخصلّي الزتونة</button>
     </section>
 
-    <!-- Phase 2: temporary extraction preview (test only). The Arabic-labels
-         box and the extracted-content box are shown separately so mixed
-         RTL/LTR lines keep their natural order. -->
-    <section id="extract-panel" class="extract" hidden>
-      <div class="extract-head">
-        <span class="extract-title">الداتا المسحوبة</span>
-        <span id="extract-meta" class="extract-meta"></span>
-      </div>
-      <textarea id="extract-arabic" class="extract-box extract-box--labels" readonly dir="rtl" spellcheck="false" hidden></textarea>
-      <textarea id="extract-output" class="extract-box" readonly dir="ltr" spellcheck="false"></textarea>
-      <div class="extract-actions">
+    <!-- State: thinking (extraction + Gemini Nano are working) -->
+    <section id="state-thinking" class="state state--thinking" hidden>
+      <div class="spinner spinner--lg" aria-hidden="true"></div>
+      <p class="state-title thinking-title">الزتونة بتعصر الأفكار…</p>
+      <p id="thinking-sub" class="state-sub">سيبها ثانية وهتلاقي الخلاصة جاهزة.</p>
+    </section>
+
+    <!-- State: AI result -->
+    <section id="state-result" class="state state--result" hidden>
+      <div class="result-head">
+        <span id="result-eyebrow" class="state-eyebrow">الزتونة</span>
         <button id="btn-copy" class="mini" type="button">نسخ</button>
-        <button id="btn-close-extract" class="mini mini--ghost" type="button">إغلاق</button>
+      </div>
+      <div id="result-box" class="result-box" tabindex="0" role="region" aria-label="نتيجة الزتونة">
+        <p id="result-text" class="result-text" dir="rtl"></p>
+      </div>
+      <div class="result-actions">
+        <button id="btn-again" class="mini mini--ghost" type="button">↻ جرّب تاني</button>
       </div>
     </section>
 
-    <!-- Extraction progress / errors -->
-    <p id="extract-status" class="extract-status" hidden></p>
+    <!-- State: errors (extraction failed, AI failed, model still downloading…) -->
+    <section id="state-error" class="state state--error" hidden>
+      <div class="state-icon state-icon--unsupported" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8v5" />
+          <path d="M12 16.5h.01" />
+        </svg>
+      </div>
+      <h2 class="state-title">معلش، حصلت مشكلة</h2>
+      <p id="error-text" class="state-sub">حاول تاني.</p>
+      <button id="btn-retry" class="cta cta--neon" type="button">جرّب تاني</button>
+    </section>
+
+    <!-- State: built-in AI not enabled in this browser -->
+    <section id="state-ai-off" class="state state--ai" hidden>
+      <div class="state-icon state-icon--ai" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5" y="5" width="14" height="14" rx="3" />
+          <path d="M9 9h.01M15 9h.01M9 13h6" />
+          <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+        </svg>
+      </div>
+      <h2 class="state-title">عشان تستخدم الزتونة، لازم تفعل الذكاء الاصطناعي في متصفحك</h2>
+      <p class="state-sub">
+        الزتونة بتشتغل بالذكاء الاصطناعي المدمج في كروم (Gemini Nano) — من غير سيرفرات ولا مفاتيح API.
+        فعّله من إعدادات كروم وارجع جرب تاني.
+      </p>
+      <button id="btn-open-flags" class="ai-link" type="button" title="chrome://flags/#prompt-api-for-gemini-nano">
+        افتح إعدادات كروم فوراً
+      </button>
+      <code class="ai-url" dir="ltr">chrome://flags/#prompt-api-for-gemini-nano</code>
+      <p class="ai-note">لو اللينك مش فاتح من هنا، انسخ العنوان ده واغلقه وحدده في شريط عناوين كروم.</p>
+      <ol class="ai-steps">
+        <li>حوّل إعداد <b class="ltr">Prompt API for Gemini Nano</b> لـ <b>Enabled</b>.</li>
+        <li>من <b class="ltr">chrome://components</b> اتأكد إن <b class="ltr">Optimization Guide On Device Model</b> متحمّل (أو اعمل Update).</li>
+        <li>اعمل Restart لكروم، وقفل النافذة دي وافتحها تاني.</li>
+      </ol>
+      <p id="ai-status" class="ai-status" hidden></p>
+      <p id="ai-copy-hint" class="ai-hint" hidden></p>
+      <button id="btn-ai-recheck" class="mini mini--ghost" type="button">✓ فعّلته — جرّب تاني</button>
+    </section>
 
     <!-- State: unsupported page -->
     <section id="state-unsupported" class="state state--unsupported" hidden>
@@ -100,6 +145,7 @@
   </main>
 
   <script src="../content/extract.js"></script>
+  <script src="../ai/ai.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

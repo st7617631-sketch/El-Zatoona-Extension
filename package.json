@@ -5,7 +5,7 @@
   "description": "El Zatoona - Chrome extension (MV3). Phase 1: Setup & UI.",
   "license": "UNLICENSED",
   "scripts": {
-    "test": "node .qa/test-detect.mjs",
+    "test": "node .qa/test-detect.mjs && node .qa/ai-flow.mjs product",
     "qa:ui": "node .qa/qa-popup.mjs product .qa/shots/product.png",
     "qa:e2e": "node .qa/e2e-popup.mjs"
   },
