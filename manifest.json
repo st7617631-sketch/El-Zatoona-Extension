@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "الزتونة - El Zatoona",
+  "short_name": "El Zatoona",
+  "version": "1.0.0",
+  "description": "الزتونة: لخّص المقالات وافحص المنتجات بالذكاء الاصطناعي المدمج في كروم (Gemini Nano) — بدون سيرفرات ولا مفاتيح API.",
+  "icons": {
+    "16": "assets/icons/icon16.png",
+    "32": "assets/icons/icon32.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
+  },
+  "action": {
+    "default_title": "الزتونة - El Zatoona",
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "assets/icons/icon16.png",
+      "32": "assets/icons/icon32.png",
+      "48": "assets/icons/icon48.png",
+      "128": "assets/icons/icon128.png"
+    }
+  },
+  "permissions": [
+    "activeTab",
+    "storage"
+  ]
+}

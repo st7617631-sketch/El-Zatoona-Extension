@@ -1,0 +1,384 @@
+/* ============================================================
+   El Zatoona — Popup styles (Modern / Minimalist)
+   Brand palette: neon green + navy/black, tuned to the logo.
+   ============================================================ */
+
+:root {
+  --navy-900: #0b1116;
+  --navy-800: #0f1720;
+  --navy-700: #151f2a;
+  --navy-600: #1d2a37;
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.12);
+  --text: #eef4f1;
+  --text-muted: #94a3ab;
+  --text-dim: #64727b;
+  --neon: #b6f24a;
+  --neon-soft: #d3ff7d;
+  --neon-ink: #0a1407;
+  --neon-glow: rgba(182, 242, 74, 0.35);
+  --olive: #7ba63a;
+  --radius-lg: 18px;
+  --radius-md: 12px;
+  --radius-pill: 999px;
+  --font: "Segoe UI", "Cairo", "Tahoma", system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 340px;
+  background: transparent;
+}
+
+body {
+  font-family: var(--font);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------------------------- Shell ---------------------------- */
+
+.app {
+  position: relative;
+  width: 340px;
+  min-height: 400px;
+  padding: 18px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  direction: rtl;
+  text-align: right;
+  background:
+    radial-gradient(120% 70% at 50% -10%, rgba(182, 242, 74, 0.12) 0%, transparent 60%),
+    radial-gradient(90% 60% at 100% 110%, rgba(58, 160, 200, 0.10) 0%, transparent 65%),
+    linear-gradient(165deg, var(--navy-800) 0%, var(--navy-900) 100%);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.app::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 14px 14px;
+  opacity: 0.35;
+  mask-image: linear-gradient(to bottom, black, transparent 55%);
+  -webkit-mask-image: linear-gradient(to bottom, black, transparent 55%);
+}
+
+.app > * {
+  position: relative; /* keep content above the dotted texture */
+}
+
+/* ---------------------------- Header --------------------------- */
+
+.header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  box-shadow: 0 0 0 1px var(--line-strong), 0 6px 16px rgba(0, 0, 0, 0.45);
+  flex: 0 0 auto;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  flex: 1 1 auto;
+}
+
+.brand-name {
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: var(--text);
+}
+
+.brand-name::first-letter {
+  color: var(--neon);
+}
+
+.brand-tagline {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 2.6px;
+  color: var(--text-dim);
+  direction: ltr;
+  text-align: right;
+}
+
+.brand-badge {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: var(--neon);
+  background: rgba(182, 242, 74, 0.09);
+  border: 1px solid rgba(182, 242, 74, 0.28);
+  border-radius: var(--radius-pill);
+  padding: 3px 8px;
+  direction: ltr;
+}
+
+/* ---------------------------- States --------------------------- */
+
+.state {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 18px 6px 6px;
+  animation: fade-up 0.28s ease-out both;
+}
+
+.state[hidden] {
+  display: none;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.state-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 4px;
+  background: linear-gradient(160deg, rgba(182, 242, 74, 0.16), rgba(182, 242, 74, 0.03));
+  border: 1px solid rgba(182, 242, 74, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.state-icon svg {
+  width: 26px;
+  height: 26px;
+  color: var(--neon-soft);
+}
+
+.state-icon--article {
+  background: linear-gradient(160deg, rgba(58, 160, 200, 0.18), rgba(58, 160, 200, 0.04));
+  border-color: rgba(96, 190, 220, 0.25);
+}
+
+.state-icon--article svg {
+  color: #7fd3ea;
+}
+
+.state-icon--unsupported {
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01));
+  border-color: var(--line-strong);
+}
+
+.state-icon--unsupported svg {
+  color: var(--text-muted);
+}
+
+.state-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--neon);
+  letter-spacing: 0.3px;
+}
+
+.state-title {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.state-sub {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-muted);
+  max-width: 250px;
+}
+
+.state-url {
+  margin-top: 4px;
+  max-width: 100%;
+  font-size: 10px;
+  color: var(--text-dim);
+  direction: ltr;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+}
+
+/* Loading state */
+
+.state--loading {
+  justify-content: center;
+  padding-top: 60px;
+  gap: 14px;
+  color: var(--text-muted);
+}
+
+.spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid rgba(182, 242, 74, 0.18);
+  border-top-color: var(--neon);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.state-text {
+  font-size: 12px;
+}
+
+/* ----------------------------- CTA ----------------------------- */
+
+.cta {
+  margin-top: 10px;
+  width: 100%;
+  max-width: 270px;
+  padding: 13px 18px;
+  border: 0;
+  border-radius: var(--radius-md);
+  font-family: var(--font);
+  font-size: 14.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+}
+
+.cta--neon {
+  color: var(--neon-ink);
+  background: linear-gradient(180deg, var(--neon-soft) 0%, var(--neon) 55%, #9ad637 100%);
+  box-shadow: 0 6px 18px var(--neon-glow), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.cta--neon:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 9px 22px var(--neon-glow), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.cta--neon:active {
+  transform: translateY(0) scale(0.985);
+}
+
+.cta:focus-visible {
+  outline: 2px solid var(--neon);
+  outline-offset: 3px;
+}
+
+/* ---------------------------- Footer --------------------------- */
+
+.footer {
+  position: relative;
+  margin-top: auto;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
+  border: 1px solid var(--line);
+}
+
+.credits {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.credits-text {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.credits-text b {
+  color: var(--neon);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.credits-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--neon);
+  box-shadow: 0 0 8px var(--neon-glow);
+}
+
+.credits-dot[hidden] {
+  display: none;
+}
+
+.credits-dot.is-empty {
+  background: #f2b84a;
+  box-shadow: 0 0 8px rgba(242, 184, 74, 0.35);
+}
+
+.credits-bar {
+  margin-top: 8px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.credits-fill {
+  display: block;
+  height: 100%;
+  width: 0; /* set by popup.js */
+  border-radius: inherit;
+  background: linear-gradient(90deg, #9ad637, var(--neon-soft));
+  box-shadow: 0 0 10px var(--neon-glow);
+  transition: width 0.35s ease, background 0.35s ease;
+}
+
+.credits-fill.is-empty {
+  background: linear-gradient(90deg, #d99a2b, #f2b84a);
+  box-shadow: none;
+}
+
+/* ------------------------ Reduced motion ----------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .state,
+  .spinner,
+  .cta,
+  .credits-fill {
+    animation: none !important;
+    transition: none !important;
+  }
+}

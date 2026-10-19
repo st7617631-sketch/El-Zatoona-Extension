@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>الزتونة - El Zatoona</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <main class="app">
+    <!-- Header -->
+    <header class="header">
+      <img class="brand-logo" src="../../assets/icons/icon48.png" alt="شعار الزتونة" />
+      <div class="brand-text">
+        <h1 class="brand-name">الزتونة</h1>
+        <p class="brand-tagline">EL ZATOONA</p>
+      </div>
+      <span class="brand-badge" title="يعمل بالذكاء الاصطناعي المدمج في المتصفح">AI</span>
+    </header>
+
+    <!-- State: checking page -->
+    <section id="state-loading" class="state state--loading" hidden>
+      <div class="spinner" aria-hidden="true"></div>
+      <p class="state-text">بنتأكد من الصفحة اللي انت فيها…</p>
+    </section>
+
+    <!-- State: product page -->
+    <section id="state-product" class="state" hidden>
+      <div class="state-icon state-icon--product" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+          <path d="M3 6h18" />
+          <path d="M16 10a4 4 0 0 1-8 0" />
+        </svg>
+      </div>
+      <p class="state-eyebrow">صفحة منتج</p>
+      <h2 class="state-title">عايز تعرف المنتج يستاهل؟</h2>
+      <p class="state-sub">افحص التقييمات والأسعار وطلّع الزتونة في ثواني.</p>
+      <button id="btn-product" class="cta cta--neon" type="button">🌿 إديني زتونة المنتج</button>
+    </section>
+
+    <!-- State: article / video -->
+    <section id="state-article" class="state" hidden>
+      <div class="state-icon state-icon--article" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+          <path d="M14 3v6h6" />
+          <path d="M8 13h8M8 17h5" />
+        </svg>
+      </div>
+      <p class="state-eyebrow">مقال / فيديو</p>
+      <h2 class="state-title">مش فاضي تقرأ أو تتفرج؟</h2>
+      <p class="state-sub">سيبها على الزتونة تلخصلك أهم النقاط.</p>
+      <button id="btn-article" class="cta cta--neon" type="button">🌿 لخصلّي الزتونة</button>
+    </section>
+
+    <!-- State: unsupported page -->
+    <section id="state-unsupported" class="state state--unsupported" hidden>
+      <div class="state-icon state-icon--unsupported" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 8v5" />
+          <path d="M12 16.5h.01" />
+        </svg>
+      </div>
+      <h2 class="state-title">الزتونة مبتشتغلش هنا لسه</h2>
+      <p class="state-sub">افتح صفحة منتج على أمازون أو نون، أو مقال/فيديو وجرب تاني.</p>
+      <p id="unsupported-url" class="state-url" hidden></p>
+    </section>
+
+    <!-- Footer: daily free credits -->
+    <footer class="footer">
+      <div class="credits">
+        <span id="credits-text" class="credits-text">متبقي <b id="credits-left">5</b>/<span id="credits-total">5</span> محاولات اليوم</span>
+        <span id="credits-dot" class="credits-dot" aria-hidden="true"></span>
+      </div>
+      <div class="credits-bar" role="progressbar" aria-valuemin="0" aria-valuemax="5" aria-valuenow="5" id="credits-bar">
+        <span id="credits-fill" class="credits-fill"></span>
+      </div>
+    </footer>
+  </main>
+
+  <script src="popup.js"></script>
+</body>
+</html>
